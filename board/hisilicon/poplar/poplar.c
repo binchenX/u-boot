@@ -161,3 +161,58 @@ int board_init(void)
 
 	return 0;
 }
+
+int last_stage_init(void)
+{
+	volatile unsigned int uflag = readl(REG_START_FLAG);
+	volatile unsigned int utype = readl(REG_USB_UART_FLAG);
+	unsigned long ts;
+	int ret;
+
+	/* Just ignore it if we don't know we're doing a USB recovery boot */
+	if (uflag != CONFIG_START_MAGIC || utype != SELF_BOOT_TYPE_USBHOST)
+		return 0;
+	writel(0, REG_START_FLAG);	/* Clear the flag */
+
+	printf("\n==== POPLAR USB RECOVERY ====\n\n");
+
+	/* We observe but ignore errors so we can get to a prompt. */
+	ret = run_command("echo Are you sure you want to re-initialize "
+				"your Poplar board?", CMD_FLAG_ENV);
+	if (ret)
+		goto abort;
+	ret = run_command("askenv answer Please enter \\\"yes\\\" to proceed: ",
+			CMD_FLAG_ENV);
+	if (ret)
+		goto abort;
+	ret = run_command("test x${answer}x = xyesx", CMD_FLAG_ENV);
+	if (ret)
+		goto abort;
+
+	/* Here we go */
+
+	printf("\n     RECOVERY STARTING\n\n");
+	ret = run_command("usb start", CMD_FLAG_ENV);
+	if (ret)
+		goto done;
+	ret = run_command("fatload usb 0:0 ${scriptaddr} install.scr",
+			CMD_FLAG_ENV);
+	if (ret)
+		goto done;
+	ret = run_command("source ${scriptaddr}", CMD_FLAG_ENV);
+done:
+	printf("\n==== POPLAR USB RECOVERY %s ====\n\n",
+			ret ? "FAILED" : "SUCCESSFUL");
+	printf("\nReseting in 5 seconds...");
+	ts = get_timer(0);
+	do
+		udelay(10000);
+	while ((ts = get_timer(ts)) < 5000);
+	printf("\n");
+
+	(void)run_command("reset", CMD_FLAG_ENV);
+abort:
+	printf("\n==== POPLAR USB RECOVERY ABORTED ====\n\n");
+
+	return 0;
+}

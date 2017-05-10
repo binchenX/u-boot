@@ -11,6 +11,9 @@
 /* USB recovery */
 #define CONFIG_LAST_STAGE_INIT		1
 
+#define REG_BASE_SCTL			0xF8000000
+#define    REG_SC_GEN12			    0x00B0
+#define    REG_SC_GEN2			    0x0088
 #define REG_BASE_PERI_CTRL		0xF8A20000
 #define REG_BASE_CRG			0xF8A22000
 
@@ -48,5 +51,11 @@
 #define USB2_PHY2_SRST_TREQ		(1 << 10)
 #define USB2_PHY01_REFCLK_SEL		(1 << 12)
 #define USB2_PHY2_REFCLK_SEL		(1 << 14)
+
+	/* Special boot type identification registers */
+#define REG_USB_UART_FLAG		(REG_BASE_SCTL + REG_SC_GEN2)
+#define CONFIG_START_MAGIC		0x444f574e
+#define REG_START_FLAG			(REG_BASE_SCTL + REG_SC_GEN12)
+#define SELF_BOOT_TYPE_USBHOST		3
 
 #endif
