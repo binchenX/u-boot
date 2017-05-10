@@ -8,6 +8,9 @@
 #ifndef __HI3798cv200_H__
 #define __HI3798cv200_H__
 
+/* USB recovery */
+#define CONFIG_LAST_STAGE_INIT		1
+
 #define REG_BASE_PERI_CTRL		0xF8A20000
 #define REG_BASE_CRG			0xF8A22000
 
@@ -45,6 +48,5 @@
 #define USB2_PHY2_SRST_TREQ		(1 << 10)
 #define USB2_PHY01_REFCLK_SEL		(1 << 12)
 #define USB2_PHY2_REFCLK_SEL		(1 << 14)
-
 
 #endif

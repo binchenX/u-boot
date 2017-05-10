@@ -71,6 +71,7 @@
 #define CONFIG_ENV_OFFSET		0xF0000  /* env_mmc_blknum */
 #define CONFIG_ENV_SIZE			0x10000  /* env_mmc_nblks bytes */
 #define CONFIG_CMD_ENV
+#define CONFIG_CMD_ASKENV
 #define CONFIG_FAT_WRITE
 #define CONFIG_ENV_VARS_UBOOT_CONFIG
 
