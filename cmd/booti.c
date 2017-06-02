@@ -4,13 +4,15 @@
  *
  * SPDX-License-Identifier:	GPL-2.0+
  */
-
+#define DEBUG 1
 #include <common.h>
 #include <bootm.h>
 #include <command.h>
 #include <image.h>
+#include <libfdt.h>
 #include <lmb.h>
 #include <mapmem.h>
+#include <stdlib.h>
 #include <linux/kernel.h>
 #include <linux/sizes.h>
 
@@ -130,7 +132,7 @@ static int booti_start(cmd_tbl_t *cmdtp, int flag, int argc,
 	return 0;
 }
 
-int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+int do_booti_a(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	int ret;
 
@@ -159,6 +161,81 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 	return ret;
 }
 
+// assume this is android image, the command is booti android_image_address
+int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
+{
+	if (argc == 4) {
+		debug("normal %s %s %s %s\n", argv[0], argv[1], argv[2], argv[3]);
+		return do_booti_a(cmdtp, flag, argc, argv);
+	}
+
+	debug("boot android arm64 bootimage\n");
+	struct andr_img_hdr *hdr;
+	hdr = (struct andr_img_hdr *)simple_strtoul(argv[1], NULL, 16);
+
+	if (android_image_check_header(hdr)) {
+		printf("invalid android image\n");
+		return -1;
+	}
+
+	ulong kernel_addr = 0;
+	ulong kernel_len = 0;
+	ulong ramdisk_addr = 0;
+	ulong ramdisk_len = 0;
+	ulong fdt_addr = 0;
+	ulong fdt_len = 0;
+
+	android_image_get_kernel(hdr, false, &kernel_addr, &kernel_len);
+	android_image_get_ramdisk(hdr, &ramdisk_addr, &ramdisk_len);
+	android_image_get_second(hdr, &fdt_addr, &fdt_len);
+
+	if (fdt_check_header((void*)fdt_addr)) {
+		printf(" error: invalid fdt\n");
+		return -1;
+	}
+
+	// relocate ramdisk and fdt to the address defined by the environment variable.
+	// that means we'll ignore the load address of ramdisk and dtb defined in the
+	// abootimg, since it make more sense letting u-boot handling where to put what.
+	// kernel relocation will be handled in booti_setup
+	ulong ramdisk_addr_env = getenv_ulong("ramdisk_addr_r", 16, 0);;
+	ulong fdt_addr_env = getenv_ulong("fdt_addr_r", 16, 0);
+
+	if (!ramdisk_addr_env) {
+		printf(" error: didn't define ramdisk_addr_r\n");
+		return -1;
+	}
+	memmove((void *)ramdisk_addr_env, (void *)ramdisk_addr, ramdisk_len);
+
+	if (!fdt_addr_env) {
+		printf(" error: didn't define fdt_addr_r\n");
+		return -1;
+	}
+	memmove((void *)fdt_addr_env, (void *)fdt_addr, fdt_len);
+
+	const int MAX_LEN = 20;
+	const int new_argc = 4;
+	char *new_argv[4];
+
+	for (int i = 0; i < new_argc; i++) {
+		new_argv[i] = (char*) malloc(MAX_LEN);
+	}
+
+	strcpy(new_argv[0], "booti");
+	snprintf(new_argv[1], MAX_LEN, "0x%lx", kernel_addr);
+	snprintf(new_argv[2], MAX_LEN, "0x%lx:%ld", ramdisk_addr_env,ramdisk_len);
+	snprintf(new_argv[3], MAX_LEN, "0x%lx", fdt_addr_env);
+
+	debug("android: %s %s %s %s\n", new_argv[0], new_argv[1], new_argv[2], new_argv[3]);
+
+	int ret = do_booti_a(cmdtp, flag, new_argc, new_argv);
+
+	for (int i = 0; i < new_argc; i++) {
+		free(new_argv[i]);
+	}
+
+	return ret;
+}
 #ifdef CONFIG_SYS_LONGHELP
 static char booti_help_text[] =
 	"[addr [initrd[:size]] [fdt]]\n"

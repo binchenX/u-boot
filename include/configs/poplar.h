@@ -39,6 +39,13 @@
 /* SD/MMC */
 #define CONFIG_BOUNCE_BUFFER
 
+/* Android Image format*/
+#define CONFIG_ANDROID_BOOT_IMAGE
+#define CONFIG_SYS_BOOT_RAMDISK_HIGH
+#define CONFIG_CMDLINE_TAG
+#define CONFIG_INITRD_TAG
+#define CONFIG_SETUP_MEMORY_TAGS
+#define CONFIG_SUPPORT_RAW_INITRD
 /*****************************************************************************
  *  Initial environment variables
  *****************************************************************************/
@@ -62,6 +69,16 @@
 					"scriptaddr=0x32000000\0"	\
 					"fdt_addr_r=0x32200000\0"	\
 					"ramdisk_addr_r=0x32400000\0"	\
+					"initrd_high=0xffffffffffffffff\0"	\
+					"android_addr_r=0x30000000\0"  \
+					"android_bootargs=androidboot.hardware=poplar androidboot.selinux=permissive\0"	\
+					"setupa=setenv bootargs $android_bootargs;" \
+					"usb start;"	\
+					"fatload usb 0:1 ${kernel_addr_r} Image;"	\
+					"fatload usb 0:1 ${fdt_addr_r} hi3798cv200-poplar.dtb;"	\
+					"fatload usb 0:1 ${ramdisk_addr_r} ramdisk.android.uboot\0" \
+					"boota=booti ${kernel_addr_r} ${ramdisk_addr_r} ${fdt_addr_r}\0" \
+					"bootai=mmc read ${android_addr_r} 0x2000 0x81dc;booti ${android_addr_r}\0" \
 	BOOTENV
 
 
