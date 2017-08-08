@@ -223,7 +223,7 @@ int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 
 	strcpy(new_argv[0], "booti");
 	snprintf(new_argv[1], MAX_LEN, "0x%lx", kernel_addr);
-	snprintf(new_argv[2], MAX_LEN, "0x%lx:%ld", ramdisk_addr_env,ramdisk_len);
+	snprintf(new_argv[2], MAX_LEN, "0x%lx:%lx", ramdisk_addr_env,ramdisk_len);
 	snprintf(new_argv[3], MAX_LEN, "0x%lx", fdt_addr_env);
 
 	debug("android: %s %s %s %s\n", new_argv[0], new_argv[1], new_argv[2], new_argv[3]);
